@@ -109,7 +109,7 @@ namespace StageManager
 
 		private async void WindowsManager_WindowCreated(IWindow window, bool firstCreate)
 		{
-			SwitchToSceneByNewWindow(window).SafeFireAndForget();
+			await SwitchToSceneByNewWindow(window);
 		}
 
 		private async Task SwitchToSceneByWindow(IWindow window)
