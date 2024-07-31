@@ -4,6 +4,7 @@ using StageManager.Native.PInvoke;
 using StageManager.Native.Window;
 using StageManager.Strategies;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -14,7 +15,7 @@ namespace StageManager
 	public class SceneManager
 	{
 		private readonly Desktop _desktop;
-		private List<Scene> _scenes;
+		private ConcurrentBag<Scene> _scenes;
 		private Scene _current;
 		private bool _suspend = false;
 		private Guid? _reentrancyLockSceneId;
