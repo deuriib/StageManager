@@ -122,7 +122,7 @@ namespace StageManager
 				SceneChanged?.Invoke(this, new SceneChangedEventArgs(scene, window, ChangeType.Created));
 			}
 
-			await SwitchTo(scene);
+			await SwitchTo(scene).ConfigureAwait(false);
 		}
 
 		private async Task SwitchToSceneByNewWindow(IWindow window)
