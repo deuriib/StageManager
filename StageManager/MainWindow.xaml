@@ -24,21 +24,21 @@
             TargetType="{x:Type StackPanel}">
             <Setter
                 Property="Opacity"
-                Value="0.8" />
+                Value="0.8"/>
             <Style.Triggers>
                 <Trigger
                     Property="IsMouseOver"
                     Value="true">
                     <Setter
                         Property="Opacity"
-                        Value="1" />
+                        Value="1"/>
                 </Trigger>
                 <Trigger
                     Property="IsMouseOver"
                     Value="false">
                     <Setter
                         Property="Opacity"
-                        Value="0.8" />
+                        Value="0.8"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
@@ -54,23 +54,24 @@
             <ItemsControl.ItemTemplate>
                 <DataTemplate>
                     <StackPanel Orientation="Vertical"
-                        Visibility="{Binding Visibility}"
-                        Style="{StaticResource SceneOpacity}">
+                                Visibility="{Binding Visibility}"
+                                Style="{StaticResource SceneOpacity}">
                         <i:Interaction.Triggers>
                             <i:EventTrigger
                                 EventName="MouseLeftButtonUp">
                                 <i:InvokeCommandAction
                                     Command="{Binding SwitchSceneCommand, Mode=OneTime, Source={x:Reference thisWindow}}"
-                                    CommandParameter="{Binding .}" />
+                                    CommandParameter="{Binding .}"/>
                             </i:EventTrigger>
                         </i:Interaction.Triggers>
                         <!-- Windows -->
-                        <ItemsControl
-                            ItemsSource="{Binding Windows}">
+                        <ItemsControl x:Name="windowsControl"
+                                      ItemsSource="{Binding Windows}">
                             <ItemsControl.ItemsPanel>
                                 <ItemsPanelTemplate>
-                                    <Grid
-                                        Margin="0,0,0,0"></Grid>
+                                    <UniformGrid
+                                        Rows="1"
+                                        Columns="1"/>
                                 </ItemsPanelTemplate>
                             </ItemsControl.ItemsPanel>
                             <ItemsControl.ItemTemplate>
@@ -79,7 +80,8 @@
                                         PreviewHandle="{Binding Handle}"
                                         MinHeight="100"
                                         MinWidth="150"
-                                        Margin="0, 0, 0, 0" />
+                                        HorizontalAlignment="Stretch"
+                                        VerticalAlignment="Stretch"/>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
@@ -92,7 +94,7 @@
                             <ItemsControl.ItemsPanel>
                                 <ItemsPanelTemplate>
                                     <StackPanel
-                                        Orientation="Horizontal" />
+                                        Orientation="Horizontal"/>
                                 </ItemsPanelTemplate>
                             </ItemsControl.ItemsPanel>
                             <ItemsControl.ItemTemplate>
@@ -100,12 +102,12 @@
                                     <Border>
                                         <Border.Effect>
                                             <DropShadowEffect
-                                                BlurRadius="20" />
+                                                BlurRadius="20"/>
                                         </Border.Effect>
                                         <Image
                                             Margin="0, 0, 0, 0"
                                             Height="30"
-                                            Source="{Binding Icon}" />
+                                            Source="{Binding Icon}"/>
                                     </Border>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
@@ -127,14 +129,14 @@
                     <MenuItem
                         Header="Start with Windows"
                         IsCheckable="True"
-                        IsChecked="{Binding StartsWithWindows}" />
+                        IsChecked="{Binding StartsWithWindows}"/>
                     <MenuItem
                         Header="Project page"
-                        Click="MenuItem_ProjectPage_Click" />
-                    <Separator />
+                        Click="MenuItem_ProjectPage_Click"/>
+                    <Separator/>
                     <MenuItem
                         Header="Quit"
-                        Click="MenuItem_Quit_Click" />
+                        Click="MenuItem_Quit_Click"/>
                 </ContextMenu>
             </tb:TaskbarIcon.ContextMenu>
         </tb:TaskbarIcon>

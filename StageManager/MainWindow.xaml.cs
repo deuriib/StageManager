@@ -58,7 +58,7 @@ namespace StageManager
 			_thisHandle = new System.Windows.Interop.WindowInteropHelper(this).Handle;
 			_lastWidth = Width;
 
-			StartHook();	
+			StartHook();
 		}
 
 		protected override void OnClosed(EventArgs e)
@@ -90,7 +90,7 @@ namespace StageManager
 			AddInitialScenes();
 
 			var foreground = Win32.GetForegroundWindow();
-			var foregroundScene = SceneManager.FindSceneForWindow(foreground);
+			var foregroundScene = SceneManager.GetSceneByWindowHandle(foreground);
 			if (foregroundScene is object)
 				await SceneManager.SwitchTo(foregroundScene).ConfigureAwait(true);
 		}
@@ -370,7 +370,7 @@ namespace StageManager
 		}
 
 		public static bool StartsWithWindows
-		{ 
+		{
 			get => AutoStart.IsStartup(APP_NAME);
 			set => AutoStart.SetStartup(APP_NAME, value);
 		}

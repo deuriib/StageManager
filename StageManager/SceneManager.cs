@@ -15,7 +15,7 @@ namespace StageManager
 	public class SceneManager
 	{
 		private readonly Desktop _desktop;
-		private ConcurrentBag<Scene> _scenes;
+		private ConcurrentBag<Scene> _scenes = new();
 		private Scene _current;
 		private bool _suspend = false;
 		private Guid? _reentrancyLockSceneId;
@@ -95,19 +95,27 @@ namespace StageManager
 				}
 				else
 				{
-					_scenes.Remove(scene);
+					RemoveSceneFromList(scene);
 					SceneChanged?.Invoke(this, new SceneChangedEventArgs(scene, window, ChangeType.Removed));
 				}
 			}
 		}
 
-		public Scene FindSceneForWindow(IWindow window) => FindSceneForWindow(window.Handle);
+		public Scene FindSceneForWindow(IWindow window) => GetSceneByWindowHandle(window.Handle);
 
-		public Scene FindSceneForWindow(IntPtr handle) => _scenes?.FirstOrDefault(s => s.Windows.Any(w => w.Handle == handle));
+		// Summary: Finds the scene associated with the specified window handle.
+		//
+		// Parameters:
+		//   handle: The handle of the window to search for.
+		//
+		// Returns:
+		//   The scene that contains the window with the specified handle, or null if not found.
 
-		private Scene FindSceneForProcess(string processName) => _scenes.FirstOrDefault(s => string.Equals(s.Key, processName, StringComparison.OrdinalIgnoreCase));
+		public Scene GetSceneByWindowHandle(nint handle) => _scenes.FirstOrDefault(s => s.Windows.Any(w => w.Handle == handle))!;
 
-		private async Task WindowsManager_WindowCreated(IWindow window, bool firstCreate)
+		private Scene FindSceneForProcess(string processName) => _scenes.FirstOrDefault(s => string.Equals(s.Key, processName, StringComparison.OrdinalIgnoreCase))!;
+
+		private async void WindowsManager_WindowCreated(IWindow window, bool firstCreate)
 		{
 			if (window is null)
 			{
@@ -178,46 +186,50 @@ namespace StageManager
 			return false;
 		}
 
-		public async Task SwitchTo(Scene? scene)
+		public Task SwitchTo(Scene? scene)
 		{
-			if (object.Equals(scene, _current))
-				return;
-
-			if (IsReentrancy(scene))
-				return;
-
-			try
+			if (!object.Equals(scene, _current))
 			{
-				_suspend = true;
+				if (IsReentrancy(scene))
+					return Task.CompletedTask;
 
-				var otherWindows = GetSceneableWindows().Except(scene?.Windows ?? Array.Empty<IWindow>()).ToArray();
-
-				var prior = _current;
-				_current = scene;
-
-				foreach (var s in _scenes)
-					s.IsSelected = s.Equals(scene);
-
-				if (scene is object)
+				try
 				{
-					foreach (var w in scene.Windows)
-						WindowStrategy.Show(w);
+					_suspend = true;
+
+					var otherWindows = GetSceneableWindows().Except(scene?.Windows ?? Array.Empty<IWindow>()).ToArray();
+
+					var prior = _current;
+					_current = scene!;
+
+					foreach (var s in _scenes)
+						s.IsSelected = s.Equals(scene);
+
+					if (scene is object)
+					{
+						foreach (var w in scene.Windows)
+							WindowStrategy.Show(w);
+					}
+
+					foreach (var o in otherWindows)
+						WindowStrategy.Hide(o);
+
+					CurrentSceneSelectionChanged?.Invoke(this, new CurrentSceneSelectionChangedEventArgs(prior, _current));
+
+					if (scene is null)
+						_desktop.ShowIcons();
+					else
+						_desktop.HideIcons();
+
 				}
+				finally
+				{
+					_suspend = false;
 
-				foreach (var o in otherWindows)
-					WindowStrategy.Hide(o);
-
-				CurrentSceneSelectionChanged?.Invoke(this, new CurrentSceneSelectionChangedEventArgs(prior, _current));
-
-				if (scene is null)
-					_desktop.ShowIcons();
-				else
-					_desktop.HideIcons();
+				}
 			}
-			finally
-			{
-				_suspend = false;
-			}
+
+			return Task.CompletedTask;
 		}
 
 		public Task MoveWindow(Scene sourceScene, IWindow window, Scene targetScene)
@@ -237,7 +249,8 @@ namespace StageManager
 
 				if (!sourceScene.Windows.Any())
 				{
-					_scenes.Remove(sourceScene);
+					RemoveSceneFromList(sourceScene);
+
 					SceneChanged?.Invoke(this, new SceneChangedEventArgs(sourceScene, window, ChangeType.Removed));
 				}
 
@@ -263,14 +276,23 @@ namespace StageManager
 			}
 		}
 
+		private void RemoveSceneFromList(Scene scene)
+		{
+			// Remove the sourceScene from _scenes
+			var sceneList = _scenes.ToList();
+			sceneList.Remove(scene);
+			_scenes = new ConcurrentBag<Scene>(sceneList);
+		}
+
 		public async Task MoveWindow(IntPtr handle, Scene targetScene)
 		{
-			var source = FindSceneForWindow(handle);
+			var source = GetSceneByWindowHandle(handle);
 
 			if (source is null || source.Equals(targetScene))
 				return;
 
-			var window = source.Windows.First(w => w.Handle == handle);
+			var window = source.Windows
+									.First(w => w.Handle == handle);
 			await MoveWindow(source, window, targetScene);
 		}
 
@@ -285,16 +307,28 @@ namespace StageManager
 				await MoveWindow(sourceScene, window, _current).ConfigureAwait(false);
 		}
 
-		private IEnumerable<IWindow> GetSceneableWindows() => WindowsManager?.Windows?.Where(w => !string.IsNullOrEmpty(w.ProcessFileName) && !string.IsNullOrEmpty(w.Title));
+		private IEnumerable<IWindow> GetSceneableWindows()
+		{
+			if (WindowsManager?.Windows is not null)
+			{
+				return WindowsManager.Windows
+									.Where(w => !string.IsNullOrWhiteSpace(w.ProcessFileName)
+									&& !string.IsNullOrWhiteSpace(w.Title))
+									.ToList();
+			}
+			return Enumerable.Empty<IWindow>();
+		}
 
 		public IEnumerable<Scene> GetScenes()
 		{
 			if (_scenes is null)
 			{
-				_scenes = GetSceneableWindows()
+				var sceneList = GetSceneableWindows()
 							.GroupBy(GetWindowGroupKey)
 							.Select(group => new Scene(group.Key, group.ToArray()))
 							.ToList();
+
+				_scenes = new ConcurrentBag<Scene>(sceneList);
 			}
 
 			return _scenes;
