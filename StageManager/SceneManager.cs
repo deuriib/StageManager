@@ -107,8 +107,13 @@ namespace StageManager
 
 		private Scene FindSceneForProcess(string processName) => _scenes.FirstOrDefault(s => string.Equals(s.Key, processName, StringComparison.OrdinalIgnoreCase));
 
-		private async void WindowsManager_WindowCreated(IWindow window, bool firstCreate)
+		private async Task WindowsManager_WindowCreated(IWindow window, bool firstCreate)
 		{
+			if (window is null)
+			{
+				// Handle null window reference
+				return;
+			}
 			await SwitchToSceneByNewWindow(window);
 		}
 
